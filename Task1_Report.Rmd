@@ -13,22 +13,40 @@ knitr::opts_chunk$set(echo = TRUE)
 
 This document can be used to add notes to codes and write down our insights on the output we get.
 
+## Loading data
+
 ```{r}
 library(tidyverse)     ## install.packages("tidyverse")
 library(readr)
+library(dplyr)
 ```
 
 ```{r}
 ## read train data csv. Note the readr:: prefix identifies which package it's in
 train <- readr::read_csv2("data/train.csv")
+attach(train)
 ```
 
+## Preprocessing
 
-## Including Plots
-
-You can also embed plots, for example:
+Let's start by seeing how much missing data there is per feature.  Usually a safe maximum threshold is 5% of the total for large datasets. If missing data for a certain feature or sample is more than 5% then we probably should leave that feature or sample out. We therefore check for features (columns) and samples (rows) where more than 5% of the data is missing using a simple function
 
 ```{r}
-plot()
+miss <- function(x){sum(is.na(x))/length(x)*100}
+apply(train, 2, miss)
+apply(train, 1, miss)
+
+train2 <- train %>% select(!(third_party_2_expert_id:third_party_3_expert_id))
+
+## train_ready <- train2 %>% select(apply(train2, 2, miss) < 20)
+## dit is wat ik geprobeerd heb te implementeren, zonder succes - gevolg is deze niet elegante manier van selecteren van features waarvoor percentage missing values kleiner is dan 20%
+## twijfel niet om dit te veranderen zodat we gemakkelijk in latere fase treshhold kunnen veranderen om te zien of model dan beter presteert
+train_ready <- train2 %>% select(claim_id:claim_date_occured, claim_postal_code:claim_police, claim_language:policy_holder_country, driver_id:driver_form, driver_country, driver_injured, driver_vehicle_id, repair_sla:policy_premium_100, policy_coverage_type)
+
+train_ready %>% filter(fraud == "Y")
+fraudulent <- train_ready %>% filter(fraud == "Y")
+most_fraudulent <- fraudulent %>% arrange(desc(claim_amount))
+sum(most_fraudulent[1:100,"claim_amount"]) ## even kijken wat som van 100 grootste fraudulente claims is om een idee te hebben van de grootte-orde
+
 ```
 
