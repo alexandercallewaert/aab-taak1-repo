@@ -58,3 +58,61 @@ train_ready2 <- train_ready2 %>%
   filter(driver_vehicle_id ==  claim_vehicle_id)
 ```
 
+## Exploratory analysis
+
+Understanding features
+
+### Bar plots
+```{r}
+ggplot(data = train_ready2) +
+  geom_bar(mapping = aes(x = fraud))
+## Massive class imbalance
+
+ggplot(data = train_ready2) +
+  geom_histogram(mapping = aes(x = claim_amount), binwidth = 500)
+ggplot(data = train_ready2) +
+  geom_histogram(mapping = aes(x = claim_amount), binwidth = 50)
+## There seem to be a distribution of claim amounts around 1000 and outliers located above 15 000
+
+ggplot(data = train_ready2) +
+  geom_bar(mapping = aes(x = claim_cause))
+## Dominant cause of claim registration is traffic_accident
+```
+
+### Facets & Frequency polygons
+
+```{r}
+ggplot(data = train_ready2) +
+  geom_histogram(mapping = aes(x = claim_amount), binwidth = 500)+
+  facet_wrap(~fraud)
+
+ggplot(data = train_ready2, mapping = aes(x = claim_amount, colour = fraud)) +
+  geom_freqpoly(binwidth = 500)
+## It seems like there is an equal distribution no matter whether fraud or not
+## Trying to zoom in on fraud == "Y" case using most_fraudulent data frame
+
+ggplot(data = most_fraudulent) +
+  geom_histogram(mapping = aes(x = claim_amount), binwidth = 500)
+ggplot(data = most_fraudulent) +
+  geom_histogram(mapping = aes(x = claim_amount), binwidth = 100)
+## Generally speaking, same distribituion; but also intermediate cases between 1000 and 15000
+
+ggplot(data = most_fraudulent, mapping = aes(x = claim_amount, colour = claim_cause)) +
+  geom_freqpoly(binwidth = 400)
+```
+
+### Covariation
+
+```{r}
+ggplot(data = most_fraudulent, mapping = aes(x = claim_num_vehicles, y = claim_amount)) + 
+  geom_boxplot(mapping = aes(group = cut_width(claim_num_vehicles, 1)))
+## This is interesting!
+## For fraudulent cases, we see that there is some exceptionally high claim amounts when one vehicle is involved
+
+ggplot(data = train_ready2, mapping = aes(x = fraud, y = claim_amount)) + 
+  geom_boxplot(mapping = aes(group = cut_width(claim_amount, 7500)))
+
+ggplot(data = train_ready2) +
+  geom_point(mapping = aes(x = claim_num_vehicles, y = claim_amount))
+```
+
