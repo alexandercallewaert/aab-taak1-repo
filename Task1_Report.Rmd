@@ -48,5 +48,13 @@ most_fraudulent <- train_ready %>%
   arrange(desc(claim_amount))
 sum(most_fraudulent[1:100, "claim_amount"])
 ## even kijken wat som van 100 grootste fraudulente claims is om een idee te hebben van de grootte-orde
+
+## nutteloze kolommen weg
+train_ready2 <- train_ready %>%
+  select(!(claim_id))
+  
+## instanties verwijderen waarvoor driver_vehicle_id niet overeenkomt met claim_vehicle_id (data quality problemen)
+train_ready2 <- train_ready2 %>% 
+  filter(driver_vehicle_id ==  claim_vehicle_id)
 ```
 
