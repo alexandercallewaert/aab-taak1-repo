@@ -108,11 +108,11 @@ ggplot(data = most_fraudulent, mapping = aes(x = claim_num_vehicles, y = claim_a
   geom_boxplot(mapping = aes(group = cut_width(claim_num_vehicles, 1)))
 ## This is interesting!
 ## For fraudulent cases, we see that there is some exceptionally high claim amounts when one vehicle is involved
+```
 
-ggplot(data = train_ready2, mapping = aes(x = fraud, y = claim_amount)) + 
-  geom_boxplot(mapping = aes(group = cut_width(claim_amount, 7500)))
+### Correlation
 
-ggplot(data = train_ready2) +
-  geom_point(mapping = aes(x = claim_num_vehicles, y = claim_amount))
+```{r}
+library(corrplot)
 ```
 
