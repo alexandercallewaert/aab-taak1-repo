@@ -6,9 +6,14 @@ library(zoo)        # to convert to date
 library(tidyr)      # to separate date columns 
 library(tidyverse)  # to separate date columns 
 
-train <- read_delim("test.csv", ";", escape_double = FALSE, trim_ws = TRUE)
-attach(train)
+train <- read_delim("train.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+test <- read_delim("test.csv", ";", escape_double = FALSE, trim_ws = TRUE)
 
+#############
+### TRAIN ###
+#############
+
+attach(train)
 ## Make date variables ##
 
 ### year, month & day 
@@ -167,7 +172,171 @@ train$policy_coverage_1000    <- as.numeric(train$policy_coverage_1000)
 train$policy_coverage_type    <- as.factor(train$policy_coverage_type)
 
 str(train)
+detach(train)
 
 save(train, file = "train.RData")
-save(train, file = "test.RData") # change line 9 to "test.csv" instead of "train.csv" and run
+
+############
+### TEST ###
+############
+
+attach(test)
+
+## Make date variables ##
+
+### year, month & day 
+test$claim_date_registered <- ymd(test$claim_date_registered)
+test$claim_date_occured <- ymd(test$claim_date_occured)
+
+### only year & month
+test$claim_vehicle_date_inuse <- format(lubridate::parse_date_time(test$claim_vehicle_date_inuse, 
+                                                                    orders = c("Y/m")), "%Y-%m") 
+test$claim_vehicle_date_inuse <- as.Date(as.yearmon(test$claim_vehicle_date_inuse, "%Y-%m"))
+
+test$policy_date_start <- format(lubridate::parse_date_time(test$policy_date_start, 
+                                                             orders = c("Y/m")), "%Y-%m") 
+test$policy_date_start <- as.Date(as.yearmon(test$policy_date_start, "%Y-%m"))
+
+test$policy_date_next_expiry <- format(lubridate::parse_date_time(test$policy_date_next_expiry, 
+                                                                   orders = c("Y/m")), "%Y-%m")
+test$policy_date_next_expiry <- as.Date(as.yearmon(test$policy_date_next_expiry, "%Y-%m"))
+
+test$policy_date_last_renewed <- format(lubridate::parse_date_time(test$policy_date_last_renewed, 
+                                                                    orders = c("Y/m")), "%Y-%m")
+test$policy_date_last_renewed <- as.Date(as.yearmon(test$policy_date_last_renewed, "%Y-%m"))
+
+str(test)
+
+
+## Separate date columns ## 
+
+### Year, Month & Day
+
+test <- separate(test, claim_date_registered, c("claim_date_registered_Year", 
+                                                  "claim_date_registered_Month", 
+                                                  "claim_date_registered_Day"), sep = "-")
+test <- separate(test, claim_date_occured, c("claim_date_occured_Year", 
+                                               "claim_date_occured_Month", 
+                                               "claim_date_occured_Day"), sep = "-")
+
+### Year & Month
+
+test <- separate(test, claim_vehicle_date_inuse, 
+                  c("claim_vehicle_date_inuse_Year", "claim_vehicle_date_inuse_Month"),
+                  sep = "-") 
+
+test <- separate(test, policy_date_start, 
+                  c("policy_date_start_Year","policy_date_start_Month"),
+                  sep = "-")
+
+test <- separate(test, policy_date_next_expiry, 
+                  c("policy_date_next_expiry_Year", "policy_date_next_expiry_Month"),
+                  sep = "-")
+
+test <- separate(test, policy_date_last_renewed, 
+                  c("policy_date_last_renewed_Year", "policy_date_last_renewed_Month"),
+                  sep = "-")
+
+str(test) # hier zie je dat alle data geconverteerd is naar characters, dus deze nog omzetten 
+# naar numerieke waarden en we hebben compatibele waarden voor Random Forest  
+
+
+## Factorizing all variables & making Numeric ## 
+
+test$claim_date_registered_Year  <- as.numeric(test$claim_date_registered_Year)    
+test$claim_date_registered_Month <- as.numeric(test$claim_date_registered_Month)  
+test$claim_date_registered_Day   <- as.numeric(test$claim_date_registered_Day) 
+test$claim_date_occured_Year     <- as.numeric(test$claim_date_occured_Year)       
+test$claim_date_occured_Month    <- as.numeric(test$claim_date_occured_Month)      
+test$claim_date_occured_Day      <- as.numeric(test$claim_date_occured_Day) 
+
+test$claim_time_occured  <- as.numeric(test$claim_time_occured)            
+test$claim_postal_code   <- as.numeric(test$claim_postal_code)                 
+test$claim_cause         <- as.factor(test$claim_cause)          
+test$claim_liable        <- as.factor(test$claim_liable)          
+test$claim_num_injured   <- as.numeric(test$claim_num_injured)                
+test$claim_num_third_parties <- as.numeric(test$claim_num_third_parties)           
+test$claim_num_vehicles  <- as.numeric(test$claim_num_vehicles)                
+test$claim_police        <- as.factor(test$claim_police)            
+test$claim_alcohol       <- as.factor(test$claim_alcohol)             
+test$claim_language      <- as.factor(test$claim_language)
+
+test$claim_vehicle_id        <- as.factor(test$claim_vehicle_id)           
+test$claim_vehicle_brand     <- as.factor(test$claim_vehicle_brand)          
+test$claim_vehicle_type      <- as.factor(test$claim_vehicle_type)          
+test$claim_vehicle_date_inuse_Year <- as.numeric(test$claim_vehicle_date_inuse_Year)    
+test$claim_vehicle_date_inuse_Month <- as.numeric(test$claim_vehicle_date_inuse_Month)    
+test$claim_vehicle_cyl       <- as.numeric(test$claim_vehicle_cyl)                 
+test$claim_vehicle_load      <- as.numeric(test$claim_vehicle_load)               
+test$claim_vehicle_fuel_type <- as.factor(test$claim_vehicle_fuel_type)       
+test$claim_vehicle_power     <- as.numeric(test$claim_vehicle_power)       
+
+test$policy_holder_id          <- as.factor(test$policy_holder_id)      
+test$policy_holder_postal_code <- as.numeric(test$policy_holder_postal_code)        
+test$policy_holder_form        <- as.factor(test$policy_holder_form)    
+test$policy_holder_year_birth  <- as.numeric(test$policy_holder_year_birth)          
+test$policy_holder_country     <- as.factor(test$policy_holder_country )    
+test$policy_holder_expert_id   <- as.factor(test$policy_holder_expert_id) 
+
+test$driver_id           <- as.factor(test$driver_id)          
+test$driver_postal_code  <- as.numeric(test$driver_postal_code )                
+test$driver_form         <- as.factor(test$driver_form)          
+test$driver_year_birth   <- as.numeric(test$driver_year_birth )                
+test$driver_country      <- as.factor(test$driver_country)          
+test$driver_expert_id    <- as.factor(test$driver_expert_id)          
+test$driver_injured      <- as.factor(test$driver_injured )          
+test$driver_vehicle_id   <- as.factor(test$driver_vehicle_id)          
+
+test$third_party_1_id          <- as.factor(test$third_party_1_id)             
+test$third_party_1_postal_code <- as.numeric(test$third_party_1_postal_code)         
+test$third_party_1_injured     <- as.factor(test$third_party_1_injured)    
+test$third_party_1_vehicle_type <- as.factor(test$third_party_1_vehicle_type)    
+test$third_party_1_form        <- as.factor(test$third_party_1_form)    
+test$third_party_1_year_birth  <- as.numeric(test$third_party_1_year_birth)      
+test$third_party_1_country     <- as.factor(test$third_party_1_country)    
+test$third_party_1_vehicle_id  <- as.factor(test$third_party_1_vehicle_id)    
+test$third_party_1_expert_id   <- as.factor(test$third_party_1_expert_id) 
+
+test$third_party_2_id          <- as.factor(test$third_party_2_id)             
+test$third_party_2_postal_code <- as.numeric(test$third_party_2_postal_code)         
+test$third_party_2_injured     <- as.factor(test$third_party_2_injured)    
+test$third_party_2_vehicle_type <- as.factor(test$third_party_2_vehicle_type)    
+test$third_party_2_form        <- as.factor(test$third_party_2_form)    
+test$third_party_2_year_birth  <- as.numeric(test$third_party_2_year_birth)      
+test$third_party_2_country     <- as.factor(test$third_party_2_country)    
+test$third_party_2_vehicle_id  <- as.factor(test$third_party_2_vehicle_id)    
+test$third_party_2_expert_id   <- as.factor(test$third_party_2_expert_id) 
+
+test$third_party_3_id          <- as.factor(test$third_party_3_id)             
+test$third_party_3_postal_code <- as.numeric(test$third_party_3_postal_code)         
+test$third_party_3_injured     <- as.factor(test$third_party_3_injured)    
+test$third_party_3_vehicle_type <- as.factor(test$third_party_3_vehicle_type)    
+test$third_party_3_form        <- as.factor(test$third_party_3_form)    
+test$third_party_3_year_birth  <- as.numeric(test$third_party_3_year_birth)      
+test$third_party_3_country     <- as.factor(test$third_party_3_country)    
+test$third_party_3_vehicle_id  <- as.factor(test$third_party_3_vehicle_id)    
+test$third_party_3_expert_id   <- as.factor(test$third_party_3_expert_id) 
+
+test$repair_id           <- as.factor(test$repair_id)          
+test$repair_postal_code  <- as.numeric(test$repair_postal_code)               
+test$repair_form         <- as.factor(test$repair_form )           
+test$repair_year_birth   <- as.numeric(test$repair_year_birth)          
+test$repair_country      <- as.factor(test$repair_country)          
+test$repair_sla          <- as.factor(test$repair_sla)
+
+test$policy_date_start_Year  <- as.numeric(test$policy_date_start_Year)          
+test$policy_date_start_Month <- as.numeric(test$policy_date_start_Month)           
+test$policy_date_next_expiry_Year  <- as.numeric(test$policy_date_next_expiry_Year)    
+test$policy_date_next_expiry_Month <- as.numeric(test$policy_date_next_expiry_Month)    
+test$policy_date_last_renewed_Year <- as.numeric(test$policy_date_last_renewed_Year)    
+test$policy_date_last_renewed_Month <- as.numeric(test$policy_date_last_renewed_Month)    
+test$policy_num_changes      <- as.numeric(test$policy_num_changes)            
+test$policy_num_claims       <- as.numeric(test$policy_num_claims)                
+test$policy_premium_100      <- as.numeric(test$policy_premium_100)           
+test$policy_coverage_1000    <- as.numeric(test$policy_coverage_1000)             
+test$policy_coverage_type    <- as.factor(test$policy_coverage_type)
+
+str(test)
+detach(test)
+save(test, file = "test.RData")
 

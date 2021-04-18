@@ -24,9 +24,13 @@ library(dplyr)
 
 ```{r, message=FALSE, warning=FALSE}
 ## read train data csv. Note the readr:: prefix identifies which package it's in
-train <- readr::read_csv2("data/train.csv")
-attach(train)
+# TRAIN <- readr::read_csv2("data/train.csv")
+load("train.RData")
+train <- train
+test <- load("test.RData")
 ```
+
+"train.RData" contains the date variables in different columns and the variables are factorised and made numeric (where TRAIN does not). This dataset is obtained with the "MAKE_2_DATASETS.R" file. The test data is also modified in this R script. It's easy to load both datasets into the R environment with the load command.  
 
 ## Preprocessing
 
