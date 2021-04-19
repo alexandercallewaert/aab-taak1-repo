@@ -168,8 +168,11 @@ train$policy_date_last_renewed_Month <- as.numeric(train$policy_date_last_renewe
 train$policy_num_changes      <- as.numeric(train$policy_num_changes)            
 train$policy_num_claims       <- as.numeric(train$policy_num_claims)                
 train$policy_premium_100      <- as.numeric(train$policy_premium_100)           
-train$policy_coverage_1000    <- as.numeric(train$policy_coverage_1000)             
+train$policy_coverage_1000    <- as.numeric(train$policy_coverage_1000) 
+
 train$policy_coverage_type    <- as.factor(train$policy_coverage_type)
+train$policy_coverage_type    <- gsub("#","",as.character(train$policy_coverage_type))
+train$policy_coverage_type    <- as.numeric(train$policy_coverage_type)
 
 str(train)
 detach(train)
@@ -333,8 +336,11 @@ test$policy_date_last_renewed_Month <- as.numeric(test$policy_date_last_renewed_
 test$policy_num_changes      <- as.numeric(test$policy_num_changes)            
 test$policy_num_claims       <- as.numeric(test$policy_num_claims)                
 test$policy_premium_100      <- as.numeric(test$policy_premium_100)           
-test$policy_coverage_1000    <- as.numeric(test$policy_coverage_1000)             
+test$policy_coverage_1000    <- as.numeric(test$policy_coverage_1000)    
+
 test$policy_coverage_type    <- as.factor(test$policy_coverage_type)
+test$policy_coverage_type    <- gsub("#","",as.character(test$policy_coverage_type))
+test$policy_coverage_type    <- as.numeric(test$policy_coverage_type)
 
 str(test)
 detach(test)
