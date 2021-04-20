@@ -1,0 +1,7 @@
+1) Hoe zouden we "claim_vehicle_id" en "driver_vehicle_id" kunnen opnemen in ons model? Ons model laat enkel factors of getallen toe. Dit is een unieke combinatie van letters en cijfers en zal volgens mij niet veel bijdragen aan het model indien we deze twee variabelen opnemen... Stel dat we ons model hiermee laten werken, dan zal dit model toch gewoon een één op één relatie vastleggen tussen iemand die fraudeert of niet aan de hand van zijn auto? 
+
+2) Ik zou de variabele "claim_amount" samen met "claim_ID" wegdoen, aangezien amount ook niet gegeven wordt in de test set, dus op basis hiervan zou ik geen predictive model voorspellen, want in de test set is deze variabele ook niet gegeven dus zal ons model hier moeite mee hebben denk ik. 
+
+3) Ik weet niet goed wat te doen wanneer je filtert voor "driver_vehicle_id" en "claim_vehicle_id", want ik stel vast dat ik altijd een foutmelding krijg met mijn train set en niet bij jou train set. Ook vraag ik me af wat we doen als we dit tegen komen in de test set..., want dat is het geval vor 17 observaties. Maken we dan voor deze observaties geen voorspelling of gebeurt dit toch? Hoe gaat ons model dan deze cases voorspellen in een test set waar dit wel eens het geval is (in 17 van de 29.955 observaties is dit het geval bij test set)? Ik vraag me gewoon af hoe het later getrainde model hier mee zal omgaan... 
+
+4) 
