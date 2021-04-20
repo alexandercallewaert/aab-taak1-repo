@@ -95,7 +95,7 @@ ggplot(data = most_fraudulent) +
   geom_histogram(mapping = aes(x = claim_amount), binwidth = 500)
 ggplot(data = most_fraudulent) +
   geom_histogram(mapping = aes(x = claim_amount), binwidth = 100)
-## Generally speaking, same distribituion; but also intermediate cases between 1000 and 15000
+## Generally speaking, same distribution; but also intermediate cases between 1000 and 15000
 
 ggplot(data = most_fraudulent, mapping = aes(x = claim_amount, colour = claim_cause)) +
   geom_freqpoly(binwidth = 400)
@@ -114,5 +114,15 @@ ggplot(data = most_fraudulent, mapping = aes(x = claim_num_vehicles, y = claim_a
 
 ```{r}
 library(corrplot)
+corrplot(cor(train_ready2[,c(2,3,9)]), method = "circle")
+## Nutteloos denk ik
+```
+
+## Tidying the data
+
+We're now going to use the package tidyr to clean up the train data
+
+```{r}
+
 ```
 
