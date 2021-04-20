@@ -3,6 +3,8 @@ title: "Assignment 1 - Report"
 author: "Group 29"
 date: "4/12/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -10,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
 ```
 
-## R Markdown - Introduction
+## Introduction
 
 This document can be used to add notes to codes and write down our insights on the output we get.
 
@@ -20,17 +22,24 @@ This document can be used to add notes to codes and write down our insights on t
 library(tidyverse)     ## install.packages("tidyverse")
 library(readr)
 library(dplyr)
+library(knitr)
+
+library(mice)         ## to impute missing values 
+
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 ## read train data csv. Note the readr:: prefix identifies which package it's in
-# TRAIN <- readr::read_csv2("data/train.csv")
-load("train.RData")
-train <- train
-test <- load("test.RData")
+TRAIN <- readr::read_csv2("data/train.csv") # contains only 78 original variables
+load("train.RData") # contains the date values in separated columns 
+attach(train)
+
+load("test.RData")
 ```
 
 "train.RData" contains the date variables in different columns and the variables are factorised and made numeric (where TRAIN does not). This dataset is obtained with the "MAKE_2_DATASETS.R" file. The test data is also modified in this R script. It's easy to load both datasets into the R environment with the load command.  
+
+Now we're going to look at the missing values for each variable. 
 
 ## Preprocessing
 
@@ -39,9 +48,11 @@ Let's start by seeing how much missing data there is per feature. Usually a safe
 ```{r}
 miss <- function(x){sum(is.na(x))/length(x)*100}
 apply(train, 2, miss)
-apply(train, 1, miss)
+apply(train, 1, miss) # Waarom deze command? ~Rosseel
 
-NA_matrix <- as.matrix(apply(train, 2, miss))
+NA_matrix <- as.matrix(round(apply(train, 2, miss), 2), dimnames = list(c(colnames(train)), c("NA"))) 
+colnames(NA_matrix) <- c("Percentage NA")
+
 variables <- rownames(NA_matrix)
 NA_list <- c()
 NA_threshold <- 20
@@ -49,38 +60,35 @@ NA_threshold <- 20
 for (i in 1:nrow(NA_matrix))
   {
   newElement <- variables[i]
-  print(newElement)
   if (NA_matrix[i,1] <= NA_threshold) {NA_list <- c(NA_list, newElement)}
-}
+  }
+```
 
-## Op deze manier kan je alle namen van variabelen selecteren waarvoor geldt dat de proportie van missing values kleiner of gelijk is aan 20%. Hier kan je de threshold dus bepalen indien je wenst, zie train3. Momenteel komt train3 dus overeen met train_ready indien je threshold op 20% zet. 
+This way we select all variables for which the threshold is bigger than the percentage of missing values. We put the variables for which this is true in a list and with this list we select the columns of the train dataset (see below: "train_NA_threshold") to do the predictive learning. 
 
-train2 <- train %>% select(!(third_party_2_expert_id:third_party_3_expert_id))
-train3 <- train %>% select(all_of(NA_list))
+```{r}
+train_NA_threshold <- train %>% select(all_of(NA_list))
 
-## train_ready <- train2 %>% select(apply(train2, 2, miss) < 20)
-## dit is wat ik geprobeerd heb te implementeren, zonder succes - gevolg is deze niet elegante manier van selecteren van features waarvoor percentage missing values kleiner is dan 20%
-## twijfel niet om dit te veranderen zodat we gemakkelijk in latere fase treshhold kunnen veranderen om te zien of model dan beter presteert -> train3 
-
-train_ready <- train2 %>% select(claim_id:claim_date_occured, claim_postal_code:claim_police, claim_language:policy_holder_country, driver_id:driver_form, driver_country, driver_injured, driver_vehicle_id, repair_sla:policy_premium_100, policy_coverage_type)
-
-most_fraudulent <- train_ready %>% 
+most_fraudulent <- train_NA_threshold %>% 
   filter(fraud == "Y") %>% 
   arrange(desc(claim_amount))
 sum(most_fraudulent[1:100, "claim_amount"])
-
-## even kijken wat som van 100 grootste fraudulente claims is om een idee te hebben van de grootte-orde
-
-## nutteloze kolommen weg
-train_ready2 <- train_ready %>%
-  select(!(claim_id))
-  
-## instanties verwijderen waarvoor driver_vehicle_id niet overeenkomt met claim_vehicle_id (data quality problemen), hoe ga je dit aanpakken in de test data? Stel dat dit voorkomt en we toch een voorspelling moeten kunnen geven samen met ID van die instantie... 
-train_ready2 <- train_ready2 %>% 
-  filter(driver_vehicle_id ==  claim_vehicle_id)
 ```
 
-Hoe gaat ons model dan deze cases voorspellen in een test set waar dit wel eens het geval is (in 17 van de 29.955 observaties is dit het geval bij test set)? Ik vraag me gewoon af hoe het later getrainde model hier mee zal omgaan... 
+Even kijken wat som van 100 grootste fraudulente claims is om een idee te hebben van de grootte-orde
+
+```{r}
+## nutteloze kolommen weg
+train_ready2 <- train_NA_threshold %>%
+  select(!(claim_id))
+
+# train_ready2 <- train_ready2 %>%
+  # select(!(claim_amount))
+  
+## Opmerking 3 - instanties verwijderen waarvoor driver_vehicle_id niet overeenkomt met claim_vehicle_id (data quality problemen), hoe ga je dit aanpakken in de test data? Stel dat dit voorkomt en we toch een voorspelling moeten kunnen geven samen met ID van die instantie... 
+train_ready2 <- train_ready2 %>% 
+  filter(as.character(train_ready2$driver_vehicle_id) == as.character(train_ready2$claim_vehicle_id))
+```
 
 ## Exploratory analysis
 
@@ -88,6 +96,7 @@ Understanding features
 
 ### Bar plots
 ```{r}
+attach(train_ready2)
 ggplot(data = train_ready2) +
   geom_bar(mapping = aes(x = fraud))
 ## Massive class imbalance
@@ -140,13 +149,143 @@ ggplot(data = most_fraudulent, mapping = aes(x = claim_num_vehicles, y = claim_a
 library(corrplot)
 ```
 
-### Factorising the variables 
+### Imputing missing values 
 
 ```{r}
-str(train_ready2)
-train_ready2$fraud <- as.factor(train_ready2$fraud)
+# Werk verder met train_ready2, deze dataset is klaar voor learning model, enkel nog missing values behandelen. 
 
-summary()
+miss <- function(x){sum(is.na(x))/length(x)*100}
+apply(train_ready2, 2, miss) # Missing values zijn al fel verminderd door filters 
+
+NA_matrix <- as.matrix(round(apply(train_ready2, 2, miss), 5), 
+                       dimnames = list(c(colnames(train_ready2)), c("Missing Values"))) 
+colnames(NA_matrix) <- c("Percentage NA")
+
+kable(NA_matrix, head = "% of Missing Values")
+NA_variables <- which(NA_matrix[,1] != 0.00000) # list of variables with missing values
+NA_variables
+```
+
+Now, the imputing. You have a lot of different packages to do this! 
+
+```{r}
+library(mice)         ## to impute missing values 
+
+load("train.RData") # contains the date values in separated columns 
+attach(train)
+
+train_original <- train
+
+miss <- function(x)   ## compute NA%
+  {sum(is.na(x))/length(x)*100}
+
+compute_NA_matrix <- function(x)  ## matrix of NA%
+  {y <- as.matrix(round(apply(x, 2, miss), 2), dimnames = list(c(colnames(x)), c("NA")))
+  colnames(y) <- c("Percentage NA")
+  return(y)}
+
+compute_NA_variables <- function(matrix, threshold, variables)
+  {NA_list <- c()
+  for (i in 1:nrow(matrix))
+    {
+    newElement <- variables[i]
+    if (NA_matrix[i,1] <= threshold) {NA_list <- c(NA_list, newElement)}
+    }
+  return(NA_list)
+}
+
+NA_matrix <- compute_NA_matrix(train) 
+ALL_variables <- rownames(NA_matrix)
+NA_threshold <- 20
+
+# berekenen van welke variabelen voldoen aan NA_threshold en in lijst steken, op basis van 
+# deze lijst selecteren we de kolommen uit de train matrix! 
+NA_list <- compute_NA_variables(NA_matrix, NA_threshold, ALL_variables)
+
+train <- train %>% select(all_of(NA_list)) ## Enkel de variabelen waarvoor NA% < 20%
+
+train <- train %>%      # geen claim_id aanwezig...
+  select(!(claim_id))
+
+train <- train %>%      # driver_vehicle_id != claim_vehicle_id, verwijderen! 
+  filter(as.character(train$driver_vehicle_id) == as.character(train$claim_vehicle_id))
+
+
+## Look at the variables with missing values 
+
+NA_matrix <- compute_NA_matrix(train)
+NA_matrix 
+
+imputing_var <- which(NA_matrix[,1] != 0.00000) # list of variables with missing values
+
+names_imputing_var  <- names(imputing_var) # name of variable in train for which we impute
+vector_imputing_var <- as.vector(imputing_var) # number of original column in train for which we impute 
+imputing_var <- cbind(names_imputing_var, vector_imputing_var)
+
+
+###### Imputing 
+
+train_impute <- mice(train[, vector_imputing_var], m = 1, method = "pmm", maxit=10)
+train_impute$imp # all rownumbers and their imputed value for specific variable
+
+## Complete train matrix with the imputed values for variables 
+
+for (i in 1:nrow(imputing_var)) # loop for every imputed variable 
+  {
+  imp_variable <- data.frame(train_impute$imp[names_imputing_var[i]])
+  matrix_imp_variable <- cbind(rownames(imp_variable), imp_variable) # makkelijker om hiermee 
+                                                                     # waarden toe te wijzen
+  for (j in 1:nrow(matrix_imp_variable)) # loop for every value of one imputed variable
+    {ID <- matrix_imp_variable[j,1]   # number of observation in train dataset 
+    VALUE <- matrix_imp_variable[j,2] # imputed value
+    
+    train[ID,vector_imputing_var[i]] <- VALUE} # assign value to [observation n°, original column imputed variable]
+  }
+
+NA_matrix <- compute_NA_matrix(train)
+NA_matrix # all %NA = 0%, good! 
+
+# Error: random forest kan niet werken met factoren waarvan er meer dan 53 levels zijn, 
+# dit is een probleem voor: "policy_coverage_type"
+str(train)
+
+train1 <- train
+
+for (i in 1:ncol(train))
+  {if (class(train[[i]]) == "factor" && nlevels(train[[i]]) > 53) {train1 <- train[,-i]}}
+
+variables <- colnames(train)
+FA_list <- c()
+
+for (i in 1:ncol(train))
+  {
+  newElement <- variables[i]
+  if (class(train[[i]]) == "factor" && nlevels(train[[i]]) > 53) {FA_list <- c(FA_list, newElement)}
+  }
+
+train <- train %>% select(all_of(FA_list))
+
+round(apply(train, 2, miss), 5)
+
+
+rf <- randomForest(
+  train$fraud ~., 
+  data=train,
+  na.action = na.roughfix)
+    
+```
+
+train_mice[NA_variables[2]]
+
+
+
+## Predictive Learning Model 
+
+
+```{r}
 
 ```
+
+
+
 
