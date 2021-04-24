@@ -1,4 +1,4 @@
-setwd("~/Desktop/HIR - FASE 4/SEMESTER 2 /ADVANCED /ASSIGNMENT 1")
+setwd("~/github/aab-taak1-repo/data")
 rm(list=ls())
 
 library(lubridate)  # to convert to date
@@ -174,6 +174,28 @@ train$policy_coverage_type    <- as.factor(train$policy_coverage_type)
 train$policy_coverage_type    <- gsub("#","",as.character(train$policy_coverage_type))
 train$policy_coverage_type    <- as.numeric(train$policy_coverage_type)
 
+
+#### Overbodige kolommen! #### 
+
+# als je de data goed analyseert, dan merk je op dat kolommen "policy_date_last_renewed_Year", 
+# "policy_date_last_renewed_Month" helemaal hetzelfde zijn als 
+
+table(train$policy_date_last_renewed_Month == train$policy_date_next_expiry_Month)
+table(train$policy_date_last_renewed_Year == train$policy_date_last_renewed_Year)
+
+# Die twee kolommen zijn dus afhankelijk van een andere kolom, dus kan je zonder verlies 
+# van algemeenheid verwijderen uit de dataset!
+
+deleteCol <- which(colnames(train) == c("policy_date_last_renewed_Month", 
+                                        "policy_date_last_renewed_Year"))
+
+train <- train[,-deleteCol]
+
+#### Overbodige rijen! #### 
+
+train <- train %>% 
+  filter(as.character(train$driver_vehicle_id) == as.character(train$claim_vehicle_id))
+
 str(train)
 detach(train)
 
@@ -341,6 +363,22 @@ test$policy_coverage_1000    <- as.numeric(test$policy_coverage_1000)
 test$policy_coverage_type    <- as.factor(test$policy_coverage_type)
 test$policy_coverage_type    <- gsub("#","",as.character(test$policy_coverage_type))
 test$policy_coverage_type    <- as.numeric(test$policy_coverage_type)
+
+#### Overbodige kolommen! #### 
+
+# als je de data goed analyseert, dan merk je op dat kolommen "policy_date_last_renewed_Year", 
+# "policy_date_last_renewed_Month" helemaal hetzelfde zijn als 
+
+table(test$policy_date_last_renewed_Month == test$policy_date_next_expiry_Month)
+table(test$policy_date_last_renewed_Year == test$policy_date_last_renewed_Year)
+
+# Die twee kolommen zijn dus afhankelijk van een andere kolom, dus kan je zonder verlies 
+# van algemeenheid verwijderen uit de dataset!
+
+deleteCol <- which(colnames(test) == c("policy_date_last_renewed_Month", 
+                                       "policy_date_last_renewed_Year"))
+
+test <- test[,-deleteCol]
 
 str(test)
 detach(test)
