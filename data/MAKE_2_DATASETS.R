@@ -181,7 +181,7 @@ train$policy_coverage_type    <- as.numeric(train$policy_coverage_type)
 # "policy_date_last_renewed_Month" helemaal hetzelfde zijn als 
 
 table(train$policy_date_last_renewed_Month == train$policy_date_next_expiry_Month)
-table(train$policy_date_last_renewed_Year == train$policy_date_next_renewed_Year)
+table(train$policy_date_last_renewed_Year == train$policy_date_next_expiry_Year)
 
 # Die twee kolommen zijn dus afhankelijk van een andere kolom, dus kan je zonder verlies 
 # van algemeenheid verwijderen uit de dataset!
@@ -370,7 +370,7 @@ test$policy_coverage_type    <- as.numeric(test$policy_coverage_type)
 # "policy_date_last_renewed_Month" helemaal hetzelfde zijn als 
 
 table(test$policy_date_last_renewed_Month == test$policy_date_next_expiry_Month)
-table(test$policy_date_last_renewed_Year == test$policy_date_next_renewed_Year)
+table(test$policy_date_last_renewed_Year == test$policy_date_next_expiry_Year)
 
 # Die twee kolommen zijn dus afhankelijk van een andere kolom, dus kan je zonder verlies 
 # van algemeenheid verwijderen uit de dataset!
