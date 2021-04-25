@@ -61,18 +61,20 @@ train <- train %>%
   filter(as.character(train$driver_vehicle_id) == as.character(train$claim_vehicle_id))
 ```
 
+Misschien wel eens onderzoeken hoeveel fraude zaken we met die laatste filter verwijderen... Indien dit wel significant is kan het al zijn dat als die twee niet kloppen we met fraude te maken hebben... (probleem is wel dat deze een categorische variabele met veel factoren is en dus al sowieso niet opgenomen wordt door random forest model)
+
 Let's start by seeing how much missing data there is per feature. Usually a safe maximum threshold is 5% of the total for large datasets. If missing data for a certain feature or sample is more than 5% then we probably should leave that feature or sample out. We therefore check for features (columns) and samples (rows) where more than 5% of the data is missing using a simple function
 
 ```{r}
-miss <- function(x)
+miss <- function(x) # to compute NA% of variables 
   {sum(is.na(x))/length(x)*100}
 
-compute_NA_matrix <- function(x)  ## matrix of NA%
+compute_NA_matrix <- function(x)  # matrix of NA%
   {y <- as.matrix(round(apply(x, 2, miss), 6), dimnames = list(c(colnames(x)), c("NA")))
   colnames(y) <- c("Percentage NA")
   return(y)}
 
-NA_variables_threshold <- function(dataset, threshold)
+NA_variables_threshold <- function(dataset, threshold) # list with variables with NA% > threshold
   {NA_list <- c()
   NA_matrix <- compute_NA_matrix(dataset)
   variables <- rownames(NA_matrix)
@@ -83,11 +85,11 @@ NA_variables_threshold <- function(dataset, threshold)
       {NA_list <- c(NA_list, newElement)}}
   return(NA_list)}
 
-compute_NA_thresholdmatrix <- function(dataset, threshold)
+compute_NA_thresholdmatrix <- function(dataset, threshold) # matrix with variables with NA% > threshold
   {dataset <- dataset %>% select(all_of(NA_variables_threshold(dataset, threshold)))
   return(compute_NA_matrix(dataset))}
 
-compute_imp_variables <- function(dataset, threshold)
+compute_imp_variables <- function(dataset, threshold) # variables that have to be imputed! 
   {NA_variables <- NA_variables_threshold(dataset, threshold) 
   dataset <- dataset %>% select(all_of(NA_variables))
   
@@ -109,12 +111,14 @@ compute_imp_variables(test, 20)         # volgens een bepaalde threshold!
 This way we select all variables for which the threshold is bigger than the percentage of missing values. We put the variables for which this is true in a list and with this list we select the columns of the train dataset to do the predictive learning. 
 
 ```{r}
-train <- train %>% select(all_of(NA_variables_threshold(train, 20)))
+train <- train %>% 
+  select(all_of(NA_variables_threshold(train, 20)))
 
 imp_variables <- rownames(compute_imp_variables(train, 20))
 all_variables <- NA_variables_threshold(train, 20) # alle variabelen die we opnemen in model! 
 
-test <- test %>% select(all_of(all_variables[-1]))
+test <- test %>% 
+  select(all_of(all_variables[-1]))
 
 compute_NA_matrix(test)
 # We gaan enkel met dezelfde variabelen werken in test als in train! 
@@ -234,6 +238,9 @@ We gaan beginnen met 2 methodes om te imputeren! Imputation at level-2 by Predic
 library(mice)
 methods(mice)
 
+# Heel deze chunk laden duurt makkelijk 15 uur. 's Avonds om 23u laten starten, om 9u volgende ochtend was test_impute1 volledig afgerond, maar test_impute2 nog maar net klaar met eerste iteratie (maxit = 10). Best deze chunk niet laden, maar gewoon de datasets op het einde van volgende chunk inladen en daar mee werken. 
+
+# Ik veronderstel ook dat deze geïmputeerde waarden van goeie kwaliteit zijn om later mee verder te werken voor eender welk predictive learning model. We kunnen ook kolommen van geïmputeerde waarden voor de train1 vervangen door kolommen van train2 en ook voor test. Dit gaat allemaal nog moeten gebeuren bij het fine tunen van een model! 
 train_impute1 <- mice(train[, vctr_imp_var_train], m = 1, 
                       method = "pmm", 
                       maxit = 10) 
@@ -283,18 +290,18 @@ train1 <- train1[,-delete]
 
 train2 <- complete_data(train, train_impute2, imp_var_train, name_imp_var_train, vctr_imp_var_train)
 compute_NA_matrix(train2) # claim vehicle id is 18.72142, geen idee hoe dit komt, ik verwijder deze variabele gewoon uit de data. Moest eigenlijk al mee verwijderd zijn toen ik de factoren met meer dan 53 levels verwijderde...
-delete <- which(colnames(train2)=="claim_vehicle_id")
+delete <- which(colnames(train2) == "claim_vehicle_id")
 train2 <- train2[,-delete]
 
 test1 <- complete_data(test, test_impute1, imp_var_test, name_imp_var_test, vctr_imp_var_test)
 compute_NA_matrix(test1)
-delete <- which(colnames(test1)=="claim_vehicle_id")
+delete <- which(colnames(test1) == "claim_vehicle_id")
 test1 <- test1[,-delete]
 compute_NA_matrix(test1)
 
 test2 <- complete_data(test, test_impute2, imp_var_test, name_imp_var_test, vctr_imp_var_test)
 compute_NA_matrix(test2)
-delete <- which(colnames(test2)=="claim_vehicle_id")
+delete <- which(colnames(test2) == "claim_vehicle_id")
 test2 <- test2[,-delete]
 
 
