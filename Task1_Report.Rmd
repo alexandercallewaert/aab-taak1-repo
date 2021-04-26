@@ -285,16 +285,14 @@ complete_data <- function(dataset, impute, imputing_var, name_imp_var, vctr_imp_
 
 train1 <- complete_data(train, train_impute1, imp_var_train, name_imp_var_train, vctr_imp_var_train)
 compute_NA_matrix(train1)
-delete <- which(colnames(train1)=="claim_vehicle_id")
-train1 <- train1[,-delete]
 
 train2 <- complete_data(train, train_impute2, imp_var_train, name_imp_var_train, vctr_imp_var_train)
-compute_NA_matrix(train2) # claim vehicle id is 18.72142, geen idee hoe dit komt, ik verwijder deze variabele gewoon uit de data. Moest eigenlijk al mee verwijderd zijn toen ik de factoren met meer dan 53 levels verwijderde...
-delete <- which(colnames(train2) == "claim_vehicle_id")
-train2 <- train2[,-delete]
+compute_NA_matrix(train2)
 
 test1 <- complete_data(test, test_impute1, imp_var_test, name_imp_var_test, vctr_imp_var_test)
 compute_NA_matrix(test1)
+
+## Fout, claim_vehicle_ID is hier helemaal verkeerd geïmputeerd, geen idee hoet dit komt...
 delete <- which(colnames(test1) == "claim_vehicle_id")
 test1 <- test1[,-delete]
 compute_NA_matrix(test1)
@@ -303,7 +301,13 @@ test2 <- complete_data(test, test_impute2, imp_var_test, name_imp_var_test, vctr
 compute_NA_matrix(test2)
 delete <- which(colnames(test2) == "claim_vehicle_id")
 test2 <- test2[,-delete]
+compute_NA_matrix(test2)
 
+delete <- which(colnames(train1) == "claim_vehicle_id")
+train1 <- train1[,-delete]
+
+delete <- which(colnames(train2) == "claim_vehicle_id")
+train2 <- train2[,-delete]
 
 save(train1, file = "train1.RData")
 save(train2, file = "train2.RData")
@@ -345,13 +349,13 @@ train1 <- delete_categorical(train1)
 train2 <- delete_categorical(train2)
 
 test1 <- delete_categorical(test1)
-test2 <- delete_categrocial(test2)
+test2 <- delete_categorical(test2)
 ```
 
 Random forest learning model. Wordt aan de hand van een train en test set geëvalueerd. We splitsen momenteel 80% van de data in een train set en 20% in een test set om daar ons model eens op toe te laten zodat we zeker ook niet overfitten! 
 
 ```{r Split Data}
-# First we split the train data in test and training! 
+# First we split the train data in test and training! Volgens mij niet nodig voor Random Forest, is gewoon goed om accuracy te meten denk ik!...
 
 prop_train <- 0.8 # proportion of train and test set! 
 prop_test <- 1-prop_train 
@@ -378,81 +382,110 @@ train2_testLabel  <- train2_test[,1]
 ```
 
 ```{r}
-## Random forest op de train set van de train data! 
+## Random forest op de train set van de train data! Hier kan je beginnen spelen en zien wat het beste resultaat oplevert...
 
+accuracy_predicted <- function(RF_model, test_set)
+  {
+  predicted <- predict(RF_model, test_set)
+  tab <- table(test_set$fraud, predicted)
+  err <- round((1-sum(diag(tab1))/sum(tab1)), 4)
+  tab <- cbind(tab, err)
+  colnames(tab) <- c("NO", "YES", "ACCURACY")
+  return(tab)  
+}
+
+create_csv <- function(RF_model, test_data)
+  {
+  predicted_values <- predict(RF_model, newdata = test_data, type = "prob")
+  probabilities <- predicted_values[,2]
+  
+  csv_file <- cbind(claim_ID_test, probabilities)
+  return(csv_file)
+  }
+```
+
+### Building the models! 
+
+Attempt 1... Score = 288629.61, AUC = 0.68532983
+```{r}
 RFmodel1 <- randomForest(
   train1_train$fraud~.,
   data = train1_train,
-  ntree = 100)
+  ntree = 100)                  # Random Forest model of entry 1 online! 
 
-RFmodel2 <- randomForest(
+accuracy_predicted(RFmodel1, train1_test)
+csv_entry1 <- create_csv(RFmodel1, test1)
+write.csv(csv_entry1, "CSV_entry1.csv", row.names = FALSE)
+```
+
+Attempt 2... De table ziet er al niet goed uit... Hier wordt 
+```{r}
+RFmodel <- randomForest(
   train2_train$fraud~.,
   data = train2_train,
   ntree = 100)
 
-## Error rate berekenen van voorspelde modellen!   
-
-predicted1 <- predict(RFmodel1, train1_test)
-tab1 <- table(train1_testLabel$fraud, predicted1)
-err1 <- (1-sum(diag(tab1))/sum(tab1))
-tab1
-err1
-
-predicted2 <- predict(RFmodel2, train2_test)
-tab2 <- table(train2_testLabel$fraud, predicted2)
-err2 <- (1-sum(diag(tab2))/sum(tab2))*100
-tab2
-err2 # dit model doet het iets beter dan vorig model
+accuracy_predicted(RFmodel, train2_test)
+csv_entry <- create_csv(RFmodel, test2)
+write.csv(csv_entry, "CSV_entry.csv", row.names = FALSE)
 ```
 
-
+Attempt 2. No splitting for test and train set and more numbers of trees in random forest learning model! Score = 321323.1, AUC = 0.72061521
 ```{r}
-predicted_test_1 <- predict(RFmodel1, newdata = test1, type = "prob")
-predicted_test_1
+RFmodel <- randomForest(
+  train1$fraud~.,
+  data = train1,
+  ntree = 1000)
 
-probabilities1 <- predicted_test_1[,2]
-claim_ids <- test_origineel[,1]
-csv1 <- cbind(claim_ids, probabilities1)
-head(csv1)
-class(csv1)
-write.csv(csv1, "CSV1.csv", row.names = FALSE)
+csv_entry <- create_csv(RFmodel, test1)
+write.csv(csv_entry, "CSV_entry2.csv", row.names = FALSE) # entry 2 online!
 ```
 
+Attempt 3, same as attempt 2, but now we use test2 of the imputed test set... 
+Score = 317565.2 and AUC = 0.71105264
 ```{r}
-library(randomForest)
+RFmodel <- randomForest(
+  train1$fraud~.,
+  data = train1,
+  ntree = 1000)
 
-
-RFtrainSet <- data[,train_ind]
-RFtestSet <- data[,-train_ind]
-RFtrainLabel <- GSMdata$Disease_State[train_ind]
-RFtestLabel <- GSMdata$Disease_State[-train_ind]
-
-RFmodel <- randomForest(x = t(RFtrainSet),
-                        y = RFtrainLabel,
-                        ntree = 100)
-
-table(train1_testLabel, predict(object = RFmodel1,newdata = train1_test))
-
-
+csv_entry <- create_csv(RFmodel, test2)
+write.csv(csv_entry, "CSV_entry3.csv", row.names = FALSE) # entry 2 online!
 ```
 
-Model toepassen op de echte testset, waar we geen labels van hebben en dus ook geen fouten van kunnen berekenen. 
-
+Attempt 4, use train2 to learn random forest model! Score = 328096.4 and AUC 0.71132037
 ```{r}
-load("data/test.RData")
-predicted_test_1 <- data.frame(predict(RFmodel1, test[,], type="prob", predict.all=TRUE))
-predicted_test_1
+RFmodel <- randomForest(
+  train2$fraud~.,
+  data = train2,
+  ntree = 500)
 
-# Probleem is dat we NA values hebben voor bepaalde objecten, aangezien er nog missing values aanwezig zijn in de test set... 
+csv_entry <- create_csv(RFmodel, test2)
+write.csv(csv_entry, "CSV_entry4.csv", row.names = FALSE) # entry 4 online!
 ```
 
+Attempt 5, more number of trees for the previous model and other test set! Score = 321323.1
+and AUC = 0.71659454
+```{r}
+RFmodel <- randomForest(
+  train2$fraud~.,
+  data = train2,
+  ntree = 1000)
 
+csv_entry <- create_csv(RFmodel, test1)
+write.csv(csv_entry, "CSV_entry5.csv", row.names = FALSE)
+```
+
+Attempt 6, score = 325755.16 and AUC = 0.71442148
 
 ```{r}
-pred.train <- predict(qda.out,books1[,5:6],CV=FALSE)
-tab<-table(books1$buyer,pred.train$class)
-print(tab)
-1-sum(diag(tab))/sum(tab)
+RFmodel <- randomForest(
+  train2$fraud~.,
+  data = train2,
+  ntree = 1000)
+
+csv_entry <- create_csv(RFmodel, test2)
+write.csv(csv_entry, "CSV_entry6.csv", row.names = FALSE)
 ```
 
 
