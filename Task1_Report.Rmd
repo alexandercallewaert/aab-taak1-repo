@@ -293,9 +293,15 @@ train_mice[NA_variables[2]]
 
 
 ```{r}
+library(randomForest)
 
+head(train_ready2)
+summary(train_ready2)
+
+rf <- randomForest(
+  train$fraud ~.,
+  na.action = na.omit,
+  data = train)
 ```
-
-
 
 
