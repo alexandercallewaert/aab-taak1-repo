@@ -13,11 +13,26 @@ setwd("~/github/aab-taak1-repo")
 rm(list=ls())
 ```
 
-## Introduction
+# Introduction
 
-This document can be used to add notes to codes and write down our insights on the output we get.
+This document will be used for our final lab report.  It consists of the following parts:
+1.  Loading the Data
+2.  Preprocessing
+  i) Missing data
+  ii) Exploratory analysis
+  iii) Imputing missing values
+  iv) Completing the datasets (train & test)
+3.  Predictive Learning Model
+  i) Random Forest model
+    A. Attempt 1
+    B. Attempt 2
+    C. Attempt 3
+    D. Attempt 4
+    E. Attempt 5
+    F. Attempt 6
+  ii) Logistic Regression model
 
-## Loading data
+# Loading data
 
 ```{r}
 library(tidyverse)     ## install.packages("tidyverse")
@@ -44,7 +59,7 @@ test_origineel <- test
 
 Now we're going to look at the missing values for each variable. 
 
-## Preprocessing
+# Preprocessing
 
 ```{r}
 ## nutteloze kolommen weg
@@ -63,6 +78,8 @@ train <- train %>%
 
 Misschien wel eens onderzoeken hoeveel fraude zaken we met die laatste filter verwijderen... Indien dit wel significant is kan het al zijn dat als die twee niet kloppen we met fraude te maken hebben... (probleem is wel dat deze een categorische variabele met veel factoren is en dus al sowieso niet opgenomen wordt door random forest model)
 -- AC:  ik denk dat voor de gevallen waar dit voorkomt (beide kolommen niet aan elkaar gelijk) we moeten aannemen dat het gewoon data quality probleem is (menselijke fout ofzo)
+
+## Missing Data
 
 Let's start by seeing how much missing data there is per feature. Usually a safe maximum threshold is 5% of the total for large datasets. If missing data for a certain feature or sample is more than 5% then we probably should leave that feature or sample out. We therefore check for features (columns) and samples (rows) where more than 5% of the data is missing using a simple function
 
@@ -193,14 +210,6 @@ corrplot(cor(train_ready2[,c(2,3,9)]), method = "circle")
 ## Nutteloos denk ik
 ```
 
-## Tidying the data
-
-We're now going to use the package tidyr to clean up the train data
-
-```{r}
-
-```
-
 ## Imputing missing values 
 
 Zowel de train set als de originele test set moeten behandeld worden voor de missing values. Bij de test set zal onze random forest anders ook NA kunnen voorspellen (denk ik momenteel omdat er NA values aanwezig waren bij predict). 
@@ -272,7 +281,7 @@ test_impute2 <- mice(test[, vctr_imp_var_test], m = 1,
 # Zodra je dit geladen hebt, duurde enkele uren bij mij, deze geïmputeerde waarden invullen in de dataset en vervolgens de datasets opslaan! 
 ```
 
-### Completing the datasets (train & test)
+## Completing the datasets (train & test)
 
 ```{r}
 complete_data <- function(dataset, impute, imputing_var, name_imp_var, vctr_imp_var) 
